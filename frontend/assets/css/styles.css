@@ -1,0 +1,23 @@
+/*Navbar*/
+
+.navbar-edit {
+  border-bottom: 1px solid #d1a4a4;
+}
+
+.button-login {
+    font-size: 14px;
+    padding-left: 20px;
+    padding-right: 20px;
+    min-width: 80px;
+    white-space: nowrap;
+    background-color: #dc3545; 
+    color: white; 
+    border-color: #dc3545; 
+    border-radius: 20px;
+}
+
+.button-login:hover {
+    background-color: #b02a37; 
+    border-color: #b02a37;
+}
+

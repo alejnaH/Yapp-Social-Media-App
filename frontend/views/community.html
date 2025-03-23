@@ -1,0 +1,84 @@
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Community Posts</h2>
+                <button class="btn btn-primary">New Post</button>
+            </div>
+            
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                        <div>
+                            <h5 class="mb-1">Jane Smith</h5>
+                            <p class="text-muted small">Posted 2 hours ago</p>
+                        </div>
+                    </div>
+                    <p class="mt-3">Just published my research paper on renewable energy! So excited to share it with this community.</p>
+                    <img src="frontend/assets/images/beach.png" class="img-fluid rounded mb-3" alt="Post image">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="toggleLike(this)">
+                                <i class="fas fa-heart"></i> Like (24)
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-comment"></i> Comments (5)
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-link" onclick="viewPost(1)">View Full Post</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                        <div>
+                            <h5 class="mb-1">Alex Johnson</h5>
+                            <p class="text-muted small">Posted yesterday</p>
+                        </div>
+                    </div>
+                    <p class="mt-3">Has anyone been to the new tech conference? What were your thoughts on the AI demonstrations?</p>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="toggleLike(this)">
+                                <i class="fas fa-heart"></i> Like (18)
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-comment"></i> Comments (12)
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-link" onclick="viewPost(2)">View Full Post</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                        <div>
+                            <h5 class="mb-1">Maria Garcia</h5>
+                            <p class="text-muted small">Posted 3 days ago</p>
+                        </div>
+                    </div>
+                    <p class="mt-3">I just finished watching One Piece. What an amazing journey! Anyone else a fan?</p>
+                    <img src="frontend/assets/images/onepiece.png" class="img-fluid rounded mb-3" alt="Post image">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="toggleLike(this)">
+                                <i class="fas fa-heart"></i> Like (45)
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-comment"></i> Comments (8)
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-link" onclick="viewPost(3)">View Full Post</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
