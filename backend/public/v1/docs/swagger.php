@@ -12,7 +12,7 @@ if($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0
 
 $openapi = \OpenApi\Generator::scan([
     __DIR__ . '/doc_setup.php',
-    __DIR__ . '/../../../index.php'
+    __DIR__ . '/../../../routes'
 ]);
 
 header('Content-Type: application/json');
