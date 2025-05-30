@@ -14,6 +14,8 @@ require_once __DIR__ . '/services/CommunityService.php';
 require_once __DIR__ . '/services/CountryService.php';
 require_once __DIR__ . '/services/CommunityPostService.php';
 require_once __DIR__ . '/services/PostLikeService.php';
+require_once __DIR__ . '/middleware/AuthMiddleware.php';
+require_once __DIR__ . '/utils/JWTHelper.php';
 
 Flight::before('start', function(&$params, &$output) {
     header('Access-Control-Allow-Origin: *');

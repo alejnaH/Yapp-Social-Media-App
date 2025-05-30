@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../middleware/AuthMiddleware.php';
+require_once __DIR__ . '/../utils/JWTHelper.php';
 
 /**
  * @OA\Post(
@@ -32,8 +34,17 @@ Flight::route('POST /api/auth/login', function() use ($userService) {
         }
         
         $user = $userService->authenticate($data['username'], $data['password']);
-        Flight::json(['status' => 'success', 'data' => $user]);
+        $token = JWTHelper::generateToken($user);
+        
+        Flight::json([
+            'status' => 'success', 
+            'data' => [
+                'user' => $user,
+                'token' => $token
+            ]
+        ]);
     } catch (Exception $e) {
         Flight::error($e);
     }
 });
+?>

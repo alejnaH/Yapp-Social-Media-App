@@ -75,6 +75,10 @@ class UserService extends BaseService {
 
         unset($user['password']);
         
+        if (!isset($user['role'])) {
+            $user['role'] = 'user';
+        }
+        
         return $user;
     }
     

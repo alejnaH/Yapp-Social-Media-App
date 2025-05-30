@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 
 /**
  * @OA\Get(
@@ -16,6 +17,8 @@
  * )
  */
 Flight::route('GET /api/posts', function() use ($postService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
         $posts = $postService->getPostsWithUserInfo();
         Flight::json(['status' => 'success', 'data' => $posts]);
@@ -47,6 +50,8 @@ Flight::route('GET /api/posts', function() use ($postService) {
  * )
  */
 Flight::route('GET /api/posts/@id', function($id) use ($postService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
         $post = $postService->getPostWithDetails($id);
         Flight::json(['status' => 'success', 'data' => $post]);
@@ -78,6 +83,8 @@ Flight::route('GET /api/posts/@id', function($id) use ($postService) {
  * )
  */
 Flight::route('GET /api/posts/user/@userId', function($userId) use ($postService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
         $posts = $postService->getByUserId($userId);
         Flight::json(['status' => 'success', 'data' => $posts]);
@@ -109,6 +116,8 @@ Flight::route('GET /api/posts/user/@userId', function($userId) use ($postService
  * )
  */
 Flight::route('GET /api/posts/community/@communityId', function($communityId) use ($postService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
         $posts = $postService->getPostsByCommunity($communityId);
         Flight::json(['status' => 'success', 'data' => $posts]);
@@ -143,6 +152,8 @@ Flight::route('GET /api/posts/community/@communityId', function($communityId) us
  * )
  */
 Flight::route('POST /api/posts', function() use ($postService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
         $data = Flight::request()->data->getData();
         $result = $postService->create($data);
@@ -183,6 +194,8 @@ Flight::route('POST /api/posts', function() use ($postService) {
  * )
  */
 Flight::route('PUT /api/posts/@id', function($id) use ($postService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
         $data = Flight::request()->data->getData();
         $result = $postService->update($id, $data);
@@ -215,6 +228,8 @@ Flight::route('PUT /api/posts/@id', function($id) use ($postService) {
  * )
  */
 Flight::route('DELETE /api/posts/@id', function($id) use ($postService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
         $result = $postService->delete($id);
         Flight::json(['status' => 'success', 'data' => $result]);
