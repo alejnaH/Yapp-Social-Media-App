@@ -197,8 +197,9 @@ Flight::route('PUT /api/posts/@id', function($id) use ($postService) {
     if (!AuthMiddleware::authenticate()) return;
 
     try {
+        $user = AuthMiddleware::getCurrentUser();
         $data = Flight::request()->data->getData();
-        $result = $postService->update($id, $data);
+        $result = $postService->updateWithAuth($id, $data, $user['user_id'], $user['role']);
         Flight::json(['status' => 'success', 'data' => $result]);
     } catch (Exception $e) {
         Flight::error($e);
@@ -231,7 +232,8 @@ Flight::route('DELETE /api/posts/@id', function($id) use ($postService) {
     if (!AuthMiddleware::authenticate()) return;
 
     try {
-        $result = $postService->delete($id);
+        $user = AuthMiddleware::getCurrentUser();
+        $result = $postService->deleteWithAuth($id, $user['user_id'], $user['role']);
         Flight::json(['status' => 'success', 'data' => $result]);
     } catch (Exception $e) {
         Flight::error($e);

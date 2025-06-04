@@ -27,6 +27,28 @@ class PostService extends BaseService {
         }
     }
 
+    public function canModify($postId, $currentUserId, $userRole) {
+        $post = $this->getById($postId);
+        if (!$post) {
+            throw new Exception("Post not found");
+        }
+        return $post['userId'] == $currentUserId || $userRole === 'admin';
+    }
+
+    public function updateWithAuth($id, $data, $currentUserId, $userRole) {
+        if (!$this->canModify($id, $currentUserId, $userRole)) {
+            throw new Exception("You don't have permission to modify this post");
+        }
+        return $this->update($id, $data);
+    }
+
+    public function deleteWithAuth($id, $currentUserId, $userRole) {
+        if (!$this->canModify($id, $currentUserId, $userRole)) {
+            throw new Exception("You don't have permission to delete this post");
+        }
+        return $this->delete($id);
+    }
+
     public function getByUserId($userId) {
         if (!is_numeric($userId) || $userId <= 0) {
             throw new Exception("Invalid user ID");

@@ -101,7 +101,8 @@ $(document).ready(function() {
         }
     });
 
-    // ENHANCED: Use hashchange event as backup AND to handle post parameters
+    // Use hashchange event as backup AND to handle post parameters
+    // 
     $(window).on('hashchange', function() {
         const hash = window.location.hash;
         console.log('Hash changed to:', hash);
@@ -387,7 +388,6 @@ async function loadPostContentWithContainer(container, currentPostId) {
         if (result.status === 'success' && result.data) {
             const post = result.data;
             
-            // Get like count and check if user liked
             const likeResult = await API.postLikes.getCount(currentPostId);
             const likeCount = likeResult.status === 'success' ? likeResult.data.count : 0;
             
@@ -400,14 +400,34 @@ async function loadPostContentWithContainer(container, currentPostId) {
                 }
             }
 
+            const canModify = canUserModify(post.userId, Auth.user.role);
+            const editDeleteButtons = canModify ? `
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); editPost(${post.id}, ${JSON.stringify(post.title).replace(/"/g, '&quot;')}, ${JSON.stringify(post.body).replace(/"/g, '&quot;')});">
+                            <i class="fas fa-edit"></i> Edit
+                        </a></li>
+                        <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); deletePost(${post.id}, ${JSON.stringify(post.title).replace(/"/g, '&quot;')});">
+                            <i class="fas fa-trash"></i> Delete
+                        </a></li>
+                    </ul>
+                </div>
+            ` : '';
+
             container.innerHTML = `
                 <div class="card-body">
-                    <div class="d-flex">
-                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
-                        <div>
-                            <h5 class="mb-1">${post.user_name || post.username}</h5>
-                            <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
+                    <div class="d-flex justify-content-between">
+                        <div class="d-flex">
+                            <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                            <div>
+                                <h5 class="mb-1">${post.user_name || post.username}</h5>
+                                <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
+                            </div>
                         </div>
+                        ${editDeleteButtons}
                     </div>
                     <h4 class="mt-3">${post.title}</h4>
                     <p class="mt-3">${post.body}</p>
@@ -422,11 +442,9 @@ async function loadPostContentWithContainer(container, currentPostId) {
                 </div>
             `;
             
-            // Show comments section
             const commentsSection = document.getElementById('comments-section');
             if (commentsSection) {
                 commentsSection.style.display = 'block';
-                // Load comments
                 loadPostComments(currentPostId);
             }
             
@@ -482,15 +500,35 @@ async function loadPostComments(postId) {
                 `;
             } else {
                 result.data.forEach(comment => {
+                    const canModify = canUserModify(comment.userId, Auth.user.role);
+                    const editDeleteButtons = canModify ? `
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); editComment(${comment.id}, ${JSON.stringify(comment.body).replace(/"/g, '&quot;')});">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a></li>
+                                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); deleteComment(${comment.id});">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a></li>
+                            </ul>
+                        </div>
+                    ` : '';
+
                     commentsHTML += `
                         <div class="card mb-2">
                             <div class="card-body">
-                                <div class="d-flex mb-2">
-                                    <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-2" alt="Avatar" style="width: 40px; height: 40px;">
-                                    <div>
-                                        <h6 class="mb-0">${comment.user_name || comment.username}</h6>
-                                        <small class="text-muted">${formatDate(comment.created_at)}</small>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div class="d-flex">
+                                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-2" alt="Avatar" style="width: 40px; height: 40px;">
+                                        <div>
+                                            <h6 class="mb-0">${comment.user_name || comment.username}</h6>
+                                            <small class="text-muted">${formatDate(comment.created_at)}</small>
+                                        </div>
                                     </div>
+                                    ${editDeleteButtons}
                                 </div>
                                 <p class="mb-0">${comment.body}</p>
                             </div>
@@ -501,7 +539,6 @@ async function loadPostComments(postId) {
             
             container.innerHTML = commentsHTML;
             
-            // Update comments count
             const countElement = document.getElementById('post-comments-count');
             if (countElement) {
                 countElement.textContent = `Comments (${result.data.length})`;

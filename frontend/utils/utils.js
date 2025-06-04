@@ -289,11 +289,9 @@ async function loadDashboardContent() {
                 `;
             } else {
                 for (const post of result.data) {
-                    // Get like count
                     const likeResult = await API.postLikes.getCount(post.id);
                     const likeCount = likeResult.status === 'success' ? likeResult.data.count : 0;
                     
-                    // Check if current user liked this post
                     let isLiked = false;
                     if (Auth.isAuthenticated()) {
                         const userId = Auth.user.user_id || Auth.user.id;
@@ -303,15 +301,35 @@ async function loadDashboardContent() {
                         }
                     }
 
+                    const canModify = canUserModify(post.userId, Auth.user.role);
+                    const editDeleteButtons = canModify ? `
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); editPost(${post.id}, ${JSON.stringify(post.title).replace(/"/g, '&quot;')}, ${JSON.stringify(post.body).replace(/"/g, '&quot;')});">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a></li>
+                                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); deletePost(${post.id}, ${JSON.stringify(post.title).replace(/"/g, '&quot;')});">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a></li>
+                            </ul>
+                        </div>
+                    ` : '';
+
                     postsHTML += `
                         <div class="card mb-3 shadow-sm">
                             <div class="card-body">
-                                <div class="d-flex">
-                                    <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
-                                    <div>
-                                        <h5 class="mb-1">${post.user_name || post.username}</h5>
-                                        <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
+                                <div class="d-flex justify-content-between">
+                                    <div class="d-flex">
+                                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                                        <div>
+                                            <h5 class="mb-1">${post.user_name || post.username}</h5>
+                                            <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
+                                        </div>
                                     </div>
+                                    ${editDeleteButtons}
                                 </div>
                                 <h6 class="mt-3">${post.title}</h6>
                                 <p class="mt-3">${post.body.length > 200 ? post.body.substring(0, 200) + '...' : post.body}</p>
@@ -385,14 +403,12 @@ async function loadCommunityContent() {
                 `;
             } else {
                 for (const post of result.data) {
-                    // Get like count and comment count
                     const likeResult = await API.postLikes.getCount(post.id);
                     const likeCount = likeResult.status === 'success' ? likeResult.data.count : 0;
                     
                     const commentsResult = await API.comments.getByPost(post.id);
                     const commentCount = commentsResult.status === 'success' ? commentsResult.data.length : 0;
                     
-                    // Check if current user liked this post
                     let isLiked = false;
                     if (Auth.isAuthenticated()) {
                         const userId = Auth.user.user_id || Auth.user.id;
@@ -402,15 +418,35 @@ async function loadCommunityContent() {
                         }
                     }
 
+                    const canModify = canUserModify(post.userId, Auth.user.role);
+                    const editDeleteButtons = canModify ? `
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); editPost(${post.id}, ${JSON.stringify(post.title).replace(/"/g, '&quot;')}, ${JSON.stringify(post.body).replace(/"/g, '&quot;')});">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a></li>
+                                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); deletePost(${post.id}, ${JSON.stringify(post.title).replace(/"/g, '&quot;')});">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a></li>
+                            </ul>
+                        </div>
+                    ` : '';
+
                     postsHTML += `
                         <div class="card mb-3 shadow-sm">
                             <div class="card-body">
-                                <div class="d-flex">
-                                    <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
-                                    <div>
-                                        <h5 class="mb-1">${post.user_name || post.username}</h5>
-                                        <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
+                                <div class="d-flex justify-content-between">
+                                    <div class="d-flex">
+                                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                                        <div>
+                                            <h5 class="mb-1">${post.user_name || post.username}</h5>
+                                            <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
+                                        </div>
                                     </div>
+                                    ${editDeleteButtons}
                                 </div>
                                 <h6 class="mt-3">${post.title}</h6>
                                 <p class="mt-3">${post.body}</p>
@@ -448,6 +484,542 @@ async function loadCommunityContent() {
                 <i class="fas fa-exclamation-circle"></i> Error loading community posts
             </div>
         `;
+    }
+}
+
+window.editPost = function(postId, currentTitle, currentBody) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to edit posts', 'warning');
+        return;
+    }
+    
+    // Prevent event bubbling
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    let modal = document.getElementById('editPostModal');
+    if (!modal) {
+        const modalHTML = `
+        <div class="modal fade" id="editPostModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Post</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editPostForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="editPostId">
+                            <div class="mb-3">
+                                <label for="editPostTitle" class="form-label">Title</label>
+                                <input type="text" class="form-control" id="editPostTitle" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editPostBody" class="form-label">Content</label>
+                                <textarea class="form-control" id="editPostBody" rows="5" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Post</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        document.getElementById('editPostForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            await handleEditPost();
+        });
+    }
+    
+    document.getElementById('editPostId').value = postId;
+    document.getElementById('editPostTitle').value = currentTitle;
+    document.getElementById('editPostBody').value = currentBody;
+    
+    const modalInstance = new bootstrap.Modal(document.getElementById('editPostModal'));
+    modalInstance.show();
+};
+
+async function handleEditPost() {
+    const postId = document.getElementById('editPostId').value;
+    const title = document.getElementById('editPostTitle').value;
+    const body = document.getElementById('editPostBody').value;
+    const userId = Auth.user.user_id || Auth.user.id;
+    
+    try {
+        const result = await API.posts.update(postId, { title, body, userId });
+        
+        if (result.status === 'success') {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editPostModal'));
+            modal.hide();
+            showAlert('Post updated successfully!', 'success');
+            
+            if (window.location.hash.includes('dashboard')) {
+                loadDashboardContent();
+            } else if (window.location.hash.includes('community')) {
+                loadCommunityContent();
+            } else if (window.location.hash.includes('post')) {
+                loadPostContent();
+            }
+        } else {
+            showAlert(result.message || 'Error updating post', 'danger');
+        }
+    } catch (error) {
+        console.error('Error updating post:', error);
+        showAlert('Error updating post', 'danger');
+    }
+}
+
+window.deletePost = function(postId, postTitle) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to delete posts', 'warning');
+        return;
+    }
+    
+    // Prevent event bubbling
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    if (confirm(`Are you sure you want to delete the post "${postTitle}"? This action cannot be undone.`)) {
+        handleDeletePost(postId);
+    }
+};
+
+async function handleDeletePost(postId) {
+    try {
+        const result = await API.posts.delete(postId);
+        
+        if (result.status === 'success') {
+            showAlert('Post deleted successfully!', 'success');
+            
+            if (window.location.hash.includes('post')) {
+                window.location.hash = '#dashboard';
+            } else if (window.location.hash.includes('dashboard')) {
+                loadDashboardContent();
+            } else if (window.location.hash.includes('community')) {
+                loadCommunityContent();
+            }
+        } else {
+            showAlert(result.message || 'Error deleting post', 'danger');
+        }
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        showAlert('Error deleting post', 'danger');
+    }
+}
+
+window.editComment = function(commentId, currentBody) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to edit comments', 'warning');
+        return;
+    }
+    
+    let modal = document.getElementById('editCommentModal');
+    if (!modal) {
+        const modalHTML = `
+        <div class="modal fade" id="editCommentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Comment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editCommentForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="editCommentId">
+                            <div class="mb-3">
+                                <label for="editCommentBody" class="form-label">Comment</label>
+                                <textarea class="form-control" id="editCommentBody" rows="3" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Comment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        document.getElementById('editCommentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleEditComment();
+        });
+    }
+    
+    document.getElementById('editCommentId').value = commentId;
+    document.getElementById('editCommentBody').value = currentBody;
+    
+    const modalInstance = new bootstrap.Modal(document.getElementById('editCommentModal'));
+    modalInstance.show();
+};
+
+async function handleEditComment() {
+    const commentId = document.getElementById('editCommentId').value;
+    const postId = document.getElementById('editCommentPostId').value;
+    const body = document.getElementById('editCommentBody').value;
+    
+    try {
+        const comment = await API.comments.getById(commentId);
+        if (comment.status !== 'success') {
+            showAlert('Error getting comment data', 'danger');
+            return;
+        }
+        
+        const result = await API.comments.update(commentId, {
+            body: body,
+            postId: comment.data.postId,
+            userId: comment.data.userId
+        });
+        
+        if (result.status === 'success') {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCommentModal'));
+            modal.hide();
+            showAlert('Comment updated successfully!', 'success');
+            
+            // my reload approach since I had problems with the spapp again
+            setTimeout(() => {
+                if (typeof loadPostComments === 'function' && postId) {
+                    loadPostComments(parseInt(postId));
+                }
+            }, 300);
+        } else {
+            showAlert(result.message || 'Error updating comment', 'danger');
+        }
+    } catch (error) {
+        console.error('Error updating comment:', error);
+        showAlert('Error updating comment', 'danger');
+    }
+}
+
+window.deleteComment = function(commentId) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to delete comments', 'warning');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
+        handleDeleteComment(commentId);
+    }
+};
+
+async function handleDeleteComment(commentId) {
+    try {
+        const result = await API.comments.delete(commentId);
+        
+        if (result.status === 'success') {
+            showAlert('Comment deleted successfully!', 'success');
+            
+            const hash = window.location.hash;
+            const match = hash.match(/id=(\d+)/);
+            if (match) {
+                loadPostComments(parseInt(match[1]));
+            }
+        } else {
+            showAlert(result.message || 'Error deleting comment', 'danger');
+        }
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        showAlert('Error deleting comment', 'danger');
+    }
+}
+
+function canUserModify(itemUserId, userRole) {
+    if (!Auth.isAuthenticated()) return false;
+    const currentUserId = Auth.user.user_id || Auth.user.id;
+    return itemUserId == currentUserId || userRole === 'admin' || Auth.user.role === 'admin';
+}
+
+function canUserModify(itemUserId, userRole) {
+    if (!Auth.isAuthenticated()) return false;
+    const currentUserId = Auth.user.user_id || Auth.user.id;
+    return itemUserId == currentUserId || userRole === 'admin' || Auth.user.role === 'admin';
+}
+
+window.editPost = function(postId, currentTitle, currentBody) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to edit posts', 'warning');
+        return;
+    }
+    
+    let modal = document.getElementById('editPostModal');
+    if (!modal) {
+        const modalHTML = `
+        <div class="modal fade" id="editPostModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Post</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editPostForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="editPostId">
+                            <div class="mb-3">
+                                <label for="editPostTitle" class="form-label">Title</label>
+                                <input type="text" class="form-control" id="editPostTitle" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editPostBody" class="form-label">Content</label>
+                                <textarea class="form-control" id="editPostBody" rows="5" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Post</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        document.getElementById('editPostForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleEditPost();
+        });
+    }
+    
+    document.getElementById('editPostId').value = postId;
+    document.getElementById('editPostTitle').value = currentTitle;
+    document.getElementById('editPostBody').value = currentBody;
+    
+    const modalInstance = new bootstrap.Modal(document.getElementById('editPostModal'));
+    modalInstance.show();
+};
+
+async function handleEditPost() {
+    const postId = document.getElementById('editPostId').value;
+    const title = document.getElementById('editPostTitle').value;
+    const body = document.getElementById('editPostBody').value;
+    const userId = Auth.user.user_id || Auth.user.id;
+    
+    try {
+        const result = await API.posts.update(postId, { title, body, userId });
+        
+        if (result.status === 'success') {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editPostModal'));
+            modal.hide();
+            showAlert('Post updated successfully!', 'success');
+            
+            // Store current location before refresh
+            const currentHash = window.location.hash;
+            
+            if (currentHash.includes('dashboard')) {
+                setTimeout(() => loadDashboardContent(), 300);
+            } else if (currentHash.includes('community')) {
+                setTimeout(() => loadCommunityContent(), 300);
+            } else if (currentHash.includes('post?id=')) {
+                // Force reload the post content by temporarily changing hash
+                setTimeout(() => {
+                    window.location.hash = '#post';
+                    setTimeout(() => {
+                        window.location.hash = `#post?id=${postId}`;
+                    }, 100);
+                }, 300);
+            }
+        } else {
+            showAlert(result.message || 'Error updating post', 'danger');
+        }
+    } catch (error) {
+        console.error('Error updating post:', error);
+        showAlert('Error updating post', 'danger');
+    }
+}
+
+window.deletePost = function(postId, postTitle) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to delete posts', 'warning');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete the post "${postTitle}"? This action cannot be undone.`)) {
+        handleDeletePost(postId);
+    }
+};
+
+async function handleDeletePost(postId) {
+    try {
+        const result = await API.posts.delete(postId);
+        
+        if (result.status === 'success') {
+            showAlert('Post deleted successfully!', 'success');
+            
+            // Always redirect to dashboard after deletion
+            setTimeout(() => {
+                window.location.hash = '#dashboard';
+                setTimeout(() => {
+                    if (typeof loadDashboardContent === 'function') {
+                        loadDashboardContent();
+                    }
+                }, 200);
+            }, 500);
+        } else {
+            showAlert(result.message || 'Error deleting post', 'danger');
+        }
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        showAlert('Error deleting post', 'danger');
+    }
+}
+
+window.editComment = function(commentId, currentBody) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to edit comments', 'warning');
+        return;
+    }
+    
+    // Prevent event bubbling that might interfere with SPAPP
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const hash = window.location.hash;
+    const match = hash.match(/id=(\d+)/);
+    const currentPostId = match ? parseInt(match[1]) : null;
+    
+    if (!currentPostId) {
+        showAlert('Error: Unable to determine post ID', 'danger');
+        return;
+    }
+    
+    let modal = document.getElementById('editCommentModal');
+    if (!modal) {
+        const modalHTML = `
+        <div class="modal fade" id="editCommentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Comment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="editCommentForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="editCommentId">
+                            <input type="hidden" id="editCommentPostId">
+                            <div class="mb-3">
+                                <label for="editCommentBody" class="form-label">Comment</label>
+                                <textarea class="form-control" id="editCommentBody" rows="3" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Comment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        document.getElementById('editCommentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            await handleEditComment();
+        });
+    }
+    
+    document.getElementById('editCommentId').value = commentId;
+    document.getElementById('editCommentPostId').value = currentPostId;
+    document.getElementById('editCommentBody').value = currentBody;
+    
+    const modalInstance = new bootstrap.Modal(document.getElementById('editCommentModal'));
+    modalInstance.show();
+};
+
+async function handleEditComment() {
+    const commentId = document.getElementById('editCommentId').value;
+    const postId = document.getElementById('editCommentPostId').value;
+    const body = document.getElementById('editCommentBody').value;
+    
+    try {
+        const comment = await API.comments.getById(commentId);
+        if (comment.status !== 'success') {
+            showAlert('Error getting comment data', 'danger');
+            return;
+        }
+        
+        const result = await API.comments.update(commentId, {
+            body: body,
+            postId: comment.data.postId,
+            userId: comment.data.userId
+        });
+        
+        if (result.status === 'success') {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editCommentModal'));
+            modal.hide();
+            showAlert('Comment updated successfully!', 'success');
+            
+            // Use the stored post ID instead of parsing from URL since I had issues with SPAPP :)
+            if (postId) {
+                setTimeout(() => {
+                    loadPostComments(parseInt(postId));
+                }, 300);
+            }
+        } else {
+            showAlert(result.message || 'Error updating comment', 'danger');
+        }
+    } catch (error) {
+        console.error('Error updating comment:', error);
+        showAlert('Error updating comment', 'danger');
+    }
+}
+
+window.deleteComment = function(commentId) {
+    if (!Auth.isAuthenticated()) {
+        showAlert('Please log in to delete comments', 'warning');
+        return;
+    }
+    
+    // Prevent event bubbling that might interfere with SPAPP
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const hash = window.location.hash;
+    const match = hash.match(/id=(\d+)/);
+    const currentPostId = match ? parseInt(match[1]) : null;
+    
+    if (!currentPostId) {
+        showAlert('Error: Unable to determine post ID', 'danger');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
+        handleDeleteComment(commentId, currentPostId);
+    }
+};
+
+async function handleDeleteComment(commentId, postId) {
+    try {
+        const result = await API.comments.delete(commentId);
+        
+        if (result.status === 'success') {
+            showAlert('Comment deleted successfully!', 'success');
+            
+            // Use a more stable approach to reload comments
+            setTimeout(() => {
+                if (typeof loadPostComments === 'function' && postId) {
+                    loadPostComments(parseInt(postId));
+                }
+            }, 300);
+        } else {
+            showAlert(result.message || 'Error deleting comment', 'danger');
+        }
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        showAlert('Error deleting comment', 'danger');
     }
 }
 
