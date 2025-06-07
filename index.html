@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="frontend/assets/css/styles.css">
     <link rel="stylesheet" href="frontend/assets/css/header.css">
 
-    <script src="frontend/utils/auth.js"></script>    
+    <!-- Load jQuery FIRST -->
     <script src="frontend/assets/js/jquery.min.js"></script>
     <script src="frontend/assets/js/jquery.spapp.min.js"></script>
 </head>
@@ -32,7 +32,7 @@
                     <form class="d-flex align-items-center" role="search">
                         <input class="form-control me-2 rounded-pill" type="search" placeholder="Search" aria-label="Search">
                         <a href="#profile" class="d-flex align-items-center text-decoration-none me-3">
-                            <img src="frontend/assets/images/profile-icon.png" alt="Profile" class="profile-img">
+                            Profile
                         </a>
                         <a href="#community" class="d-flex align-items-center text-decoration-none me-3">
                             <button type="button" class="btn btn-sm me-2">
@@ -68,18 +68,51 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.2/mdb.min.js"></script>
     
+    <!-- Load utilities and auth in correct order -->
+    <script src="frontend/utils/auth.js"></script>
+    <script src="frontend/utils/api.js"></script>
     <script src="frontend/utils/utils.js"></script>
     <script src="frontend/assets/js/script.js"></script>
     
     <script>
         $(document).ready(function() {
-            if (typeof app === 'undefined') {
-                var app = $.spapp({
-                    defaultView: "#dashboard",
-                    templateDir: "frontend/views/"
-                });
-                app.run();
-            }
+            console.log('Initializing SPAPP...');
+            
+            // Initialize SPAPP with proper default view
+            var app = $.spapp({
+                defaultView: "#login", // Always start with login, then Auth will redirect if needed
+                templateDir: "frontend/views/",
+                pageNotFound: function() {
+                    console.log('SPAPP: Page not found, redirecting...');
+                    if (Auth.isAuthenticated()) {
+                        window.location.hash = '#dashboard';
+                    } else {
+                        window.location.hash = '#login';
+                    }
+                }
+            });
+            
+            console.log('SPAPP initialized, running...');
+            app.run();
+            
+            // After SPAPP is initialized, check auth and redirect
+            setTimeout(() => {
+                console.log('Checking initial authentication state...');
+                console.log('Current hash:', window.location.hash);
+                console.log('Is authenticated:', Auth.isAuthenticated());
+                
+                if (Auth.isAuthenticated()) {
+                    if (window.location.hash === '#login' || window.location.hash === '') {
+                        console.log('User is authenticated, redirecting to dashboard...');
+                        window.location.hash = '#dashboard';
+                    }
+                } else {
+                    if (window.location.hash !== '#login' && window.location.hash !== '#signup') {
+                        console.log('User not authenticated, redirecting to login...');
+                        window.location.hash = '#login';
+                    }
+                }
+            }, 200);
         });
     </script>
 </body>

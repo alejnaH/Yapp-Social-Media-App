@@ -5,46 +5,53 @@
                 <div class="card text-black shadow-sm" style="border-radius: 15px;">
                     <div class="card-body p-4">
                         <p class="text-center h3 fw-bold mb-4">Sign up</p>
-
-                        <form>
+                        <div id="signup-alerts"></div>
+                        <form id="signupForm">
                             <div class="d-flex flex-row align-items-center mb-3">
                                 <i class="fas fa-user fa-lg me-3 fa-fw"></i>
                                 <div class="form-outline flex-fill">
-                                    <input type="text" id="form3Example1c" class="form-control" />
-                                    <label class="form-label" for="form3Example1c">Username</label>
+                                    <input type="text" id="form3Example1c" class="form-control" placeholder="Full Name" required />
+                                    <label class="form-label" for="form3Example1c">Your Name</label>
                                 </div>
                             </div>
-
+                            <div class="d-flex flex-row align-items-center mb-3">
+                                <i class="fas fa-user-circle fa-lg me-3 fa-fw"></i>
+                                <div class="form-outline flex-fill">
+                                    <input type="text" id="form3Example2c" class="form-control" placeholder="Username" required />
+                                    <label class="form-label" for="form3Example2c">Username</label>
+                                </div>
+                            </div>
                             <div class="d-flex flex-row align-items-center mb-3">
                                 <i class="fas fa-envelope fa-lg me-3 fa-fw"></i>
                                 <div class="form-outline flex-fill">
-                                    <input type="email" id="form3Example3c" class="form-control" />
-                                    <label class="form-label" for="form3Example3c">Your Email</label>
+                                    <input type="email" id="form3Example3c" class="form-control" placeholder="Email" />
+                                    <label class="form-label" for="form3Example3c">Your Email (Optional)</label>
                                 </div>
                             </div>
-
                             <div class="d-flex flex-row align-items-center mb-3">
                                 <i class="fas fa-lock fa-lg me-3 fa-fw"></i>
                                 <div class="form-outline flex-fill">
-                                    <input type="password" id="form3Example4c" class="form-control" />
+                                    <input type="password" id="form3Example4c" class="form-control" placeholder="Password" required />
                                     <label class="form-label" for="form3Example4c">Password</label>
                                 </div>
                             </div>
-
                             <div class="d-flex flex-row align-items-center mb-3">
                                 <i class="fas fa-key fa-lg me-3 fa-fw"></i>
                                 <div class="form-outline flex-fill">
-                                    <input type="password" id="form3Example4cd" class="form-control" />
+                                    <input type="password" id="form3Example4cd" class="form-control" placeholder="Confirm Password" required />
                                     <label class="form-label" for="form3Example4cd">Repeat Password</label>
                                 </div>
                             </div>
-
                             <div class="d-flex justify-content-center">
-                                <button type="button" class="btn btn-primary btn-md">Register</button>
+                                <button type="submit" class="btn btn-primary btn-md" id="signupButton">
+                                    <span class="signup-text">Register</span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                </button>
                             </div>
                         </form>
-
-                        <p class="text-center text-muted mt-3">Already have an account? <a href="#login">Log in</a></p>
+                        <p class="text-center text-muted mt-3">
+                            Already have an account? <a href="#login">Log in</a>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -53,11 +60,212 @@
 </section>
 
 <script>
-    if (typeof mdb !== 'undefined') {
-        if (mdb.Input) {
-            document.querySelectorAll('.form-outline').forEach((formOutline) => {
-                new mdb.Input(formOutline).init();
+function initializeSignupForm() {
+    console.log('Initializing signup form...');
+
+    try {
+        if (typeof mdb !== 'undefined' && mdb.Input) {
+            const formOutlines = document.querySelectorAll('.form-outline');
+            console.log('Found form outlines:', formOutlines.length);
+            
+            formOutlines.forEach((formOutline, index) => {
+                try {
+                    if (formOutline && !formOutline._mdbInput) {
+                        const input = new mdb.Input(formOutline);
+                        input.init();
+                        formOutline._mdbInput = input;
+                        console.log(`Initialized MDB input ${index + 1}`);
+                    }
+                } catch (e) {
+                    console.warn(`Failed to initialize MDB input ${index + 1}:`, e);
+                }
             });
+        } else {
+            console.log('MDB not available, skipping fancy input initialization');
         }
+    } catch (e) {
+        console.warn('MDB initialization failed:', e);
     }
+
+    const signupForm = document.getElementById('signupForm');
+    if (!signupForm) {
+        console.error('Signup form not found');
+        return;
+    }
+
+    signupForm.removeEventListener('submit', handleSignup);
+    signupForm.addEventListener('submit', handleSignup);
+    
+    console.log('Signup form initialized successfully');
+}
+
+async function handleSignup(e) {
+    e.preventDefault();
+    console.log('Signup form submitted');
+    
+    const name = document.getElementById('form3Example1c').value.trim();
+    const username = document.getElementById('form3Example2c').value.trim();
+    const email = document.getElementById('form3Example3c').value.trim();
+    const password = document.getElementById('form3Example4c').value;
+    const confirmPassword = document.getElementById('form3Example4cd').value;
+    
+    console.log('Form data:', { name, username, email, passwordLength: password.length });
+    
+    const signupButton = document.getElementById('signupButton');
+    const signupText = signupButton.querySelector('.signup-text');
+    const spinner = signupButton.querySelector('.spinner-border');
+    const alertsContainer = document.getElementById('signup-alerts');
+
+    alertsContainer.innerHTML = '';
+
+    if (!name || !username || !password || !confirmPassword) {
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Please fill in all required fields
+            </div>
+        `;
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Passwords do not match
+            </div>
+        `;
+        return;
+    }
+
+    if (password.length < 6) {
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Password must be at least 6 characters long
+            </div>
+        `;
+        return;
+    }
+
+    if (username.length < 3) {
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Username must be at least 3 characters long
+            </div>
+        `;
+        return;
+    }
+    
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Username can only contain letters, numbers, and underscores
+            </div>
+        `;
+        return;
+    }
+
+    signupText.classList.add('d-none');
+    spinner.classList.remove('d-none');
+    signupButton.disabled = true;
+    
+    try {
+        if (typeof Auth === 'undefined') {
+            throw new Error('Auth object not found - check if auth.js loaded properly');
+        }
+        
+        const userData = {
+            name: name,
+            username: username,
+            password: password
+        };
+
+        if (email) {
+            userData.email = email;
+        }
+        
+        console.log('Sending registration data:', { ...userData, password: '[HIDDEN]' });
+        
+        const result = await Auth.register(userData);
+        console.log('Registration result:', result);
+        
+        if (result.status === 'success') {
+            alertsContainer.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Registration successful! Redirecting to login...
+                </div>
+            `;
+
+            document.getElementById('signupForm').reset();
+            
+            // Redirect to login after 2 seconds
+            setTimeout(() => {
+                window.location.hash = '#login';
+                if (typeof $ !== 'undefined') {
+                    $(window).trigger('hashchange');
+                }
+            }, 2000);
+        } else {
+            // Enhanced error message handling
+            let errorMessage = 'Registration failed';
+            
+            if (result.message) {
+                errorMessage = result.message;
+            } else if (result.error) {
+                errorMessage = result.error;
+            }
+            
+            // Handle specific error cases
+            if (errorMessage.toLowerCase().includes('username already exists')) {
+                errorMessage = 'This username is already taken. Please choose a different one.';
+            } else if (errorMessage.toLowerCase().includes('network error')) {
+                errorMessage = 'Network connection error. Please check your internet connection.';
+            }
+            
+            alertsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> ${errorMessage}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        let errorMessage = 'An unexpected error occurred during registration';
+        
+        if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> ${errorMessage}
+            </div>
+        `;
+    } finally {
+        signupText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        signupButton.disabled = false;
+    }
+}
+
+function tryInitializeSignup() {
+    console.log('Trying to initialize signup form...');
+    initializeSignupForm();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing signup...');
+    setTimeout(tryInitializeSignup, 100);
+});
+
+$(document).on('spapp.page.loaded', function(event, data) {
+    if (data.req === 'signup') {
+        console.log('SPAPP signup page loaded');
+        setTimeout(tryInitializeSignup, 100);
+    }
+});
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInitializeSignup);
+} else {
+    setTimeout(tryInitializeSignup, 100);
+}
 </script>

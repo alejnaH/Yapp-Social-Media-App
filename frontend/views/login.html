@@ -5,6 +5,7 @@
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
                         <h3 class="text-center mb-4">Log In</h3>
+                        <div id="login-alerts"></div>
                         <form id="loginForm">
                             <div class="mb-3">
                                 <input type="text" id="username" class="form-control" placeholder="Username" required>
@@ -12,9 +13,21 @@
                             <div class="mb-3">
                                 <input type="password" id="password" class="form-control" placeholder="Password" required>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Log In</button>
+                            <button type="submit" class="btn btn-primary w-100" id="loginButton">
+                                <span class="login-text">Log In</span>
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            </button>
                         </form>
-                        <p class="text-center mt-3">Don't have an account? <a href="#signup">Sign up</a></p>
+                        <p class="text-center mt-3">
+                            Don't have an account? <a href="#signup">Sign up</a>
+                        </p>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                Demo accounts:<br>
+                                Admin: admin / password<br>
+                                User: johndoe / password
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -23,17 +36,143 @@
 </section>
 
 <script>
-document.getElementById('loginForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+function initializeLoginForm() {
+    console.log('Initializing login form...');
     
-    Auth.login(username, password).then(data => {
-        if (data.status === 'success') {
-            window.location.hash = '#dashboard';
-        } else {
-            alert(data.message);
+    const loginForm = document.getElementById('loginForm');
+    if (!loginForm) {
+        console.error('Login form not found');
+        return;
+    }
+
+    // Remove any existing event listeners to prevent duplicates
+    loginForm.removeEventListener('submit', handleLogin);
+    loginForm.addEventListener('submit', handleLogin);
+    
+    console.log('Login form initialized');
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    console.log('Login form submitted');
+    
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const loginButton = document.getElementById('loginButton');
+    const loginText = loginButton.querySelector('.login-text');
+    const spinner = loginButton.querySelector('.spinner-border');
+    const alertsContainer = document.getElementById('login-alerts');
+
+    alertsContainer.innerHTML = '';
+    
+    if (!username || !password) {
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> Please enter both username and password
+            </div>
+        `;
+        return;
+    }
+    
+    // Show loading state
+    loginText.classList.add('d-none');
+    spinner.classList.remove('d-none');
+    loginButton.disabled = true;
+    
+    try {
+        console.log('Attempting login for:', username);
+        
+        // Test if Auth object exists
+        if (typeof Auth === 'undefined') {
+            throw new Error('Auth object not found - check if auth.js loaded properly');
         }
-    });
+        
+        const result = await Auth.login(username, password);
+        console.log('Login result:', result);
+        
+        if (result.status === 'success') {
+            alertsContainer.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Login successful! Redirecting...
+                </div>
+            `;
+            
+            console.log('Login successful, redirecting to dashboard...');
+            
+            // Multiple redirect methods to ensure it works
+            setTimeout(() => {
+                console.log('Attempting redirect...');
+                window.location.hash = '#dashboard';
+                
+                // Force SPAPP to recognize the route change
+                if (typeof $ !== 'undefined' && $.spapp) {
+                    console.log('Triggering SPAPP route change...');
+                    $(window).trigger('hashchange');
+                }
+            }, 500);
+            
+        } else {
+            console.error('Login failed:', result);
+            let errorMessage = 'Login failed';
+            
+            if (result.message) {
+                errorMessage = result.message;
+            } else if (result.error) {
+                errorMessage = result.error;
+            }
+
+            if (errorMessage.toLowerCase().includes('network error')) {
+                errorMessage = 'Network connection error. Please check your internet connection.';
+            } else if (errorMessage.toLowerCase().includes('server error')) {
+                errorMessage = 'Server error : Please check your username and password or try again later.';
+            }
+            
+            alertsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> ${errorMessage}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        let errorMessage = 'An unexpected error occurred';
+        
+        if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        alertsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> ${errorMessage}
+            </div>
+        `;
+    } finally {
+        // Reset button state
+        loginText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+        loginButton.disabled = false;
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing login...');
+    setTimeout(initializeLoginForm, 100);
 });
+
+// Also initialize when SPAPP loads the page
+$(document).on('spapp.page.loaded', function(event, data) {
+    if (data.req === 'login') {
+        console.log('SPAPP login page loaded');
+        setTimeout(initializeLoginForm, 100);
+    }
+});
+
+// Alternative method - initialize immediately if elements exist
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeLoginForm);
+} else {
+    // DOM is already loaded
+    initializeLoginForm();
+}
 </script>
