@@ -128,7 +128,8 @@ const API = {
         unlike: (userId, postId) => API.call(`/post-likes/user/${userId}/post/${postId}`, {
             method: 'DELETE'
         }),
-        getCount: (postId) => API.call(`/post-likes/count/${postId}`)
+        getCount: (postId) => API.call(`/post-likes/count/${postId}`),
+        getByUser: (userId, postId) => API.call(`/post-likes/user/${userId}/post/${postId}`)
     },
 
     communityPosts: {
