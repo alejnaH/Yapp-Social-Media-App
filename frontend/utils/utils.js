@@ -131,7 +131,6 @@ window.toggleLike = async function(postId, button) {
 };
 
 // Helper function to update all like buttons for a specific post
-// I tried to to make the liked buttons have a red heart icon but it didn't work, probably because of the spapp
 function updateAllLikeButtonsForPost(postId, isLiked, likeCount) {
     // Find all like buttons for this post (there might be multiple on dashboard/community pages)
     const allLikeButtons = document.querySelectorAll(`[onclick*="toggleLike(${postId}"]`);
@@ -160,7 +159,7 @@ function updateAllLikeButtonsForPost(postId, isLiked, likeCount) {
     });
 }
 
-// FIXED: viewPost function for SPAPP compatibility
+// viewPost function for SPAPP compatibility
 window.viewPost = function(postId) {
     console.log('viewPost called with ID:', postId);
     
@@ -255,7 +254,7 @@ async function handleCreatePost() {
     }
 }
 
-// Load functions for different pages
+// Load functions for different pages - now uses single API call
 async function loadDashboardContent() {
     console.log('Loading dashboard content...');
     
@@ -269,6 +268,8 @@ async function loadDashboardContent() {
         console.error('Dashboard container not found');
         return;
     }
+    
+    container.innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
     
     try {
         console.log('Fetching posts...');
@@ -288,18 +289,9 @@ async function loadDashboardContent() {
                     </div>
                 `;
             } else {
-                for (const post of result.data) {
-                    const likeResult = await API.postLikes.getCount(post.id);
-                    const likeCount = likeResult.status === 'success' ? likeResult.data.count : 0;
-                    
-                    let isLiked = false;
-                    if (Auth.isAuthenticated()) {
-                        const userId = Auth.user.user_id || Auth.user.id;
-                        const userLikes = await API.postLikes.getByUser(userId);
-                        if (userLikes.status === 'success') {
-                            isLiked = userLikes.data.some(like => like.postId == post.id);
-                        }
-                    }
+                result.data.forEach(post => {
+                    const isLiked = post.user_liked == 1;
+                    const likeCount = post.like_count || 0;
 
                     const canModify = canUserModify(post.userId, Auth.user.role);
                     const editDeleteButtons = canModify ? `
@@ -347,7 +339,7 @@ async function loadDashboardContent() {
                             </div>
                         </div>
                     `;
-                }
+                });
             }
             
             container.innerHTML = postsHTML;
@@ -370,6 +362,7 @@ async function loadDashboardContent() {
     }
 }
 
+// Community content loading - now uses single API call
 async function loadCommunityContent() {
     console.log('Loading community content...');
     
@@ -383,6 +376,8 @@ async function loadCommunityContent() {
         console.error('Community container not found');
         return;
     }
+    
+    container.innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
     
     try {
         console.log('Fetching community posts...');
@@ -402,21 +397,9 @@ async function loadCommunityContent() {
                     </div>
                 `;
             } else {
-                for (const post of result.data) {
-                    const likeResult = await API.postLikes.getCount(post.id);
-                    const likeCount = likeResult.status === 'success' ? likeResult.data.count : 0;
-                    
-                    const commentsResult = await API.comments.getByPost(post.id);
-                    const commentCount = commentsResult.status === 'success' ? commentsResult.data.length : 0;
-                    
-                    let isLiked = false;
-                    if (Auth.isAuthenticated()) {
-                        const userId = Auth.user.user_id || Auth.user.id;
-                        const userLikes = await API.postLikes.getByUser(userId);
-                        if (userLikes.status === 'success') {
-                            isLiked = userLikes.data.some(like => like.postId == post.id);
-                        }
-                    }
+                result.data.forEach(post => {
+                    const isLiked = post.user_liked == 1;
+                    const likeCount = post.like_count || 0;
 
                     const canModify = canUserModify(post.userId, Auth.user.role);
                     const editDeleteButtons = canModify ? `
@@ -456,7 +439,7 @@ async function loadCommunityContent() {
                                             <i class="fas fa-heart"></i> ${isLiked ? 'Liked' : 'Like'} (${likeCount})
                                         </button>
                                         <button class="btn btn-sm btn-outline-secondary" onclick="viewPost(${post.id})">
-                                            <i class="fas fa-comment"></i> Comments (${commentCount})
+                                            <i class="fas fa-comment"></i> Comments
                                         </button>
                                     </div>
                                     <button class="btn btn-sm btn-link" onclick="viewPost(${post.id})">View Full Post</button>
@@ -464,7 +447,7 @@ async function loadCommunityContent() {
                             </div>
                         </div>
                     `;
-                }
+                });
             }
             
             container.innerHTML = postsHTML;
@@ -561,259 +544,6 @@ async function handleEditPost() {
             modal.hide();
             showAlert('Post updated successfully!', 'success');
             
-            if (window.location.hash.includes('dashboard')) {
-                loadDashboardContent();
-            } else if (window.location.hash.includes('community')) {
-                loadCommunityContent();
-            } else if (window.location.hash.includes('post')) {
-                loadPostContent();
-            }
-        } else {
-            showAlert(result.message || 'Error updating post', 'danger');
-        }
-    } catch (error) {
-        console.error('Error updating post:', error);
-        showAlert('Error updating post', 'danger');
-    }
-}
-
-window.deletePost = function(postId, postTitle) {
-    if (!Auth.isAuthenticated()) {
-        showAlert('Please log in to delete posts', 'warning');
-        return;
-    }
-    
-    // Prevent event bubbling
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    
-    if (confirm(`Are you sure you want to delete the post "${postTitle}"? This action cannot be undone.`)) {
-        handleDeletePost(postId);
-    }
-};
-
-async function handleDeletePost(postId) {
-    try {
-        const result = await API.posts.delete(postId);
-        
-        if (result.status === 'success') {
-            showAlert('Post deleted successfully!', 'success');
-            
-            if (window.location.hash.includes('post')) {
-                window.location.hash = '#dashboard';
-            } else if (window.location.hash.includes('dashboard')) {
-                loadDashboardContent();
-            } else if (window.location.hash.includes('community')) {
-                loadCommunityContent();
-            }
-        } else {
-            showAlert(result.message || 'Error deleting post', 'danger');
-        }
-    } catch (error) {
-        console.error('Error deleting post:', error);
-        showAlert('Error deleting post', 'danger');
-    }
-}
-
-window.editComment = function(commentId, currentBody) {
-    if (!Auth.isAuthenticated()) {
-        showAlert('Please log in to edit comments', 'warning');
-        return;
-    }
-    
-    let modal = document.getElementById('editCommentModal');
-    if (!modal) {
-        const modalHTML = `
-        <div class="modal fade" id="editCommentModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Comment</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <form id="editCommentForm">
-                        <div class="modal-body">
-                            <input type="hidden" id="editCommentId">
-                            <div class="mb-3">
-                                <label for="editCommentBody" class="form-label">Comment</label>
-                                <textarea class="form-control" id="editCommentBody" rows="3" required></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Update Comment</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        document.getElementById('editCommentForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            await handleEditComment();
-        });
-    }
-    
-    document.getElementById('editCommentId').value = commentId;
-    document.getElementById('editCommentBody').value = currentBody;
-    
-    const modalInstance = new bootstrap.Modal(document.getElementById('editCommentModal'));
-    modalInstance.show();
-};
-
-async function handleEditComment() {
-    const commentId = document.getElementById('editCommentId').value;
-    const postId = document.getElementById('editCommentPostId').value;
-    const body = document.getElementById('editCommentBody').value;
-    
-    try {
-        const comment = await API.comments.getById(commentId);
-        if (comment.status !== 'success') {
-            showAlert('Error getting comment data', 'danger');
-            return;
-        }
-        
-        const result = await API.comments.update(commentId, {
-            body: body,
-            postId: comment.data.postId,
-            userId: comment.data.userId
-        });
-        
-        if (result.status === 'success') {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editCommentModal'));
-            modal.hide();
-            showAlert('Comment updated successfully!', 'success');
-            
-            // my reload approach since I had problems with the spapp again
-            setTimeout(() => {
-                if (typeof loadPostComments === 'function' && postId) {
-                    loadPostComments(parseInt(postId));
-                }
-            }, 300);
-        } else {
-            showAlert(result.message || 'Error updating comment', 'danger');
-        }
-    } catch (error) {
-        console.error('Error updating comment:', error);
-        showAlert('Error updating comment', 'danger');
-    }
-}
-
-window.deleteComment = function(commentId) {
-    if (!Auth.isAuthenticated()) {
-        showAlert('Please log in to delete comments', 'warning');
-        return;
-    }
-    
-    if (confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
-        handleDeleteComment(commentId);
-    }
-};
-
-async function handleDeleteComment(commentId) {
-    try {
-        const result = await API.comments.delete(commentId);
-        
-        if (result.status === 'success') {
-            showAlert('Comment deleted successfully!', 'success');
-            
-            const hash = window.location.hash;
-            const match = hash.match(/id=(\d+)/);
-            if (match) {
-                loadPostComments(parseInt(match[1]));
-            }
-        } else {
-            showAlert(result.message || 'Error deleting comment', 'danger');
-        }
-    } catch (error) {
-        console.error('Error deleting comment:', error);
-        showAlert('Error deleting comment', 'danger');
-    }
-}
-
-function canUserModify(itemUserId, userRole) {
-    if (!Auth.isAuthenticated()) return false;
-    const currentUserId = Auth.user.user_id || Auth.user.id;
-    return itemUserId == currentUserId || userRole === 'admin' || Auth.user.role === 'admin';
-}
-
-function canUserModify(itemUserId, userRole) {
-    if (!Auth.isAuthenticated()) return false;
-    const currentUserId = Auth.user.user_id || Auth.user.id;
-    return itemUserId == currentUserId || userRole === 'admin' || Auth.user.role === 'admin';
-}
-
-window.editPost = function(postId, currentTitle, currentBody) {
-    if (!Auth.isAuthenticated()) {
-        showAlert('Please log in to edit posts', 'warning');
-        return;
-    }
-    
-    let modal = document.getElementById('editPostModal');
-    if (!modal) {
-        const modalHTML = `
-        <div class="modal fade" id="editPostModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Post</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <form id="editPostForm">
-                        <div class="modal-body">
-                            <input type="hidden" id="editPostId">
-                            <div class="mb-3">
-                                <label for="editPostTitle" class="form-label">Title</label>
-                                <input type="text" class="form-control" id="editPostTitle" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="editPostBody" class="form-label">Content</label>
-                                <textarea class="form-control" id="editPostBody" rows="5" required></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Update Post</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        document.getElementById('editPostForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            await handleEditPost();
-        });
-    }
-    
-    document.getElementById('editPostId').value = postId;
-    document.getElementById('editPostTitle').value = currentTitle;
-    document.getElementById('editPostBody').value = currentBody;
-    
-    const modalInstance = new bootstrap.Modal(document.getElementById('editPostModal'));
-    modalInstance.show();
-};
-
-async function handleEditPost() {
-    const postId = document.getElementById('editPostId').value;
-    const title = document.getElementById('editPostTitle').value;
-    const body = document.getElementById('editPostBody').value;
-    const userId = Auth.user.user_id || Auth.user.id;
-    
-    try {
-        const result = await API.posts.update(postId, { title, body, userId });
-        
-        if (result.status === 'success') {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editPostModal'));
-            modal.hide();
-            showAlert('Post updated successfully!', 'success');
-            
             // Store current location before refresh
             const currentHash = window.location.hash;
             
@@ -843,6 +573,12 @@ window.deletePost = function(postId, postTitle) {
     if (!Auth.isAuthenticated()) {
         showAlert('Please log in to delete posts', 'warning');
         return;
+    }
+    
+    // Prevent event bubbling
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
     }
     
     if (confirm(`Are you sure you want to delete the post "${postTitle}"? This action cannot be undone.`)) {
@@ -1021,6 +757,12 @@ async function handleDeleteComment(commentId, postId) {
         console.error('Error deleting comment:', error);
         showAlert('Error deleting comment', 'danger');
     }
+}
+
+function canUserModify(itemUserId, userRole) {
+    if (!Auth.isAuthenticated()) return false;
+    const currentUserId = Auth.user.user_id || Auth.user.id;
+    return itemUserId == currentUserId || userRole === 'admin' || Auth.user.role === 'admin';
 }
 
 // Make functions globally available

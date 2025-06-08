@@ -118,9 +118,6 @@ const API = {
     },
 
     postLikes: {
-        getByPost: (postId) => API.call(`/post-likes/post/${postId}`),
-        getByUser: (userId) => API.call(`/post-likes/user/${userId}`),
-        getCount: (postId) => API.call(`/post-likes/count/${postId}`),
         like: (postId, userId) => API.call('/post-likes', {
             method: 'POST',
             body: JSON.stringify({ 

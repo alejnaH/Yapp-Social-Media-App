@@ -18,9 +18,10 @@ require_once __DIR__ . '/../middleware/AuthMiddleware.php';
  */
 Flight::route('GET /api/posts', function() use ($postService) {
     if (!AuthMiddleware::authenticate()) return;
-
+    
     try {
-        $posts = $postService->getPostsWithUserInfo();
+        $user = AuthMiddleware::getCurrentUser();
+        $posts = $postService->getPostsWithUserInfo($user['user_id']);
         Flight::json(['status' => 'success', 'data' => $posts]);
     } catch (Exception $e) {
         Flight::error($e);
