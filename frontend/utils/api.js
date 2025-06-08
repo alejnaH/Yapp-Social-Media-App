@@ -1,5 +1,5 @@
 const API = {
-    baseURL: 'https://yapp-backend-ixlrf.ondigitalocean.app',
+    baseURL: 'https://yapp-backend-ixlrf.ondigitalocean.app/api',
 
     async call(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
