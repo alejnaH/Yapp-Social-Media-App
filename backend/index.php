@@ -17,6 +17,37 @@ require_once __DIR__ . '/services/PostLikeService.php';
 require_once __DIR__ . '/middleware/AuthMiddleware.php';
 require_once __DIR__ . '/utils/JWTHelper.php';
 
+Flight::route('GET /debug-db', function() {
+    header('Access-Control-Allow-Origin: https://yapp-frontend-29kxs.ondigitalocean.app');
+    try {
+        $host = Config::DB_HOST();
+        $dbName = Config::DB_NAME();
+        $username = Config::DB_USER();
+        $password = Config::DB_PASSWORD();
+        
+        Flight::json([
+            'status' => 'success', 
+            'message' => 'Config loaded successfully',
+            'db_host' => $host,
+            'db_name' => $dbName,
+            'db_user' => $username,
+            'password_set' => !empty($password)
+        ]);
+    } catch (Exception $e) {
+        Flight::json(['status' => 'error', 'message' => 'Config error: ' . $e->getMessage()]);
+    }
+});
+
+Flight::route('GET /debug-db-connect', function() {
+    header('Access-Control-Allow-Origin: https://yapp-frontend-29kxs.ondigitalocean.app');
+    try {
+        $connection = Database::connect();
+        Flight::json(['status' => 'success', 'message' => 'Database connected successfully']);
+    } catch (Exception $e) {
+        Flight::json(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+});
+
 Flight::before('start', function(&$params, &$output) {
     header('Access-Control-Allow-Origin: https://yapp-frontend-29kxs.ondigitalocean.app');
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
