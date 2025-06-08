@@ -1,4 +1,10 @@
 // Utility functions for the application
+
+// Helper function to determine which profile icon to use
+function getProfileIcon(userRole) {
+    return userRole === 'admin' ? 'frontend/assets/images/admin-icon.png' : 'frontend/assets/images/profile-icon.png';
+}
+
 function showAlert(message, type = 'info', container = null) {
     const alertHTML = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
@@ -254,7 +260,7 @@ async function handleCreatePost() {
     }
 }
 
-// Load functions for different pages - now uses single API call
+// Load functions for different pages - now uses single API call with admin icon support
 async function loadDashboardContent() {
     console.log('Loading dashboard content...');
     
@@ -292,6 +298,7 @@ async function loadDashboardContent() {
                 result.data.forEach(post => {
                     const isLiked = post.user_liked == 1;
                     const likeCount = post.like_count || 0;
+                    const profileIcon = getProfileIcon(post.user_role || post.role);
 
                     const canModify = canUserModify(post.userId, Auth.user.role);
                     const editDeleteButtons = canModify ? `
@@ -315,7 +322,7 @@ async function loadDashboardContent() {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div class="d-flex">
-                                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                                        <img src="${profileIcon}" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
                                         <div>
                                             <h5 class="mb-1">${post.user_name || post.username}</h5>
                                             <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
@@ -362,7 +369,7 @@ async function loadDashboardContent() {
     }
 }
 
-// Community content loading - now uses single API call
+// Community content loading - now uses single API call with admin icon support
 async function loadCommunityContent() {
     console.log('Loading community content...');
     
@@ -400,6 +407,7 @@ async function loadCommunityContent() {
                 result.data.forEach(post => {
                     const isLiked = post.user_liked == 1;
                     const likeCount = post.like_count || 0;
+                    const profileIcon = getProfileIcon(post.user_role || post.role);
 
                     const canModify = canUserModify(post.userId, Auth.user.role);
                     const editDeleteButtons = canModify ? `
@@ -423,7 +431,7 @@ async function loadCommunityContent() {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <div class="d-flex">
-                                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                                        <img src="${profileIcon}" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
                                         <div>
                                             <h5 class="mb-1">${post.user_name || post.username}</h5>
                                             <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
@@ -768,3 +776,4 @@ function canUserModify(itemUserId, userRole) {
 // Make functions globally available
 window.loadDashboardContent = loadDashboardContent;
 window.loadCommunityContent = loadCommunityContent;
+window.getProfileIcon = getProfileIcon;

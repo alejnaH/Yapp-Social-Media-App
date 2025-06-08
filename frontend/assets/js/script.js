@@ -3,11 +3,10 @@ $(document).ready(function() {
     
     // Update navigation on app start
     Auth.updateNavigation();
-
+    
     // Handle navigation clicks
     $(document).on('click', 'a[href^="#"]', function(e) {
         const hash = $(this).attr('href');
-        
         // Check authentication for protected routes
         if (['#dashboard', '#community', '#profile', '#post'].includes(hash.split('?')[0])) {
             if (!Auth.requireAuth()) {
@@ -16,19 +15,19 @@ $(document).ready(function() {
             }
         }
     });
-
+    
     // Handle logout button click in navigation
     $(document).on('click', '.button-logout', function(e) {
         e.preventDefault();
         Auth.logout();
     });
-
+    
     // Handle login button click in navigation
     $(document).on('click', '.button-login', function(e) {
         e.preventDefault();
         window.location.hash = '#login';
     });
-
+    
     // SPAPP page loaded event handler
     $(document).on('spapp.page.loaded', function(event, data) {
         console.log('SPAPP page loaded event fired:', data.req);
@@ -100,9 +99,8 @@ $(document).ready(function() {
                 break;
         }
     });
-
+    
     // Use hashchange event as backup AND to handle post parameters
-    // 
     $(window).on('hashchange', function() {
         const hash = window.location.hash;
         console.log('Hash changed to:', hash);
@@ -130,27 +128,20 @@ $(document).ready(function() {
                 }
             }, 200);
         } else if (hash.startsWith('#post?id=')) {
-            // SPECIAL HANDLING for post with parameters
             console.log('Detected post with parameter, handling specially...');
-            
             // First, make sure SPAPP loads the post template
-            // We'll navigate to #post first, then load content with parameter
             setTimeout(() => {
                 const postContainer = document.getElementById('post-content');
                 if (!postContainer) {
                     console.log('Post container not found, forcing SPAPP to load post template...');
-                    
                     // Store the current hash with parameter
                     const targetHash = hash;
-                    
                     // Navigate to #post to make SPAPP load the template
                     window.location.hash = '#post';
-                    
                     // Wait for SPAPP to load the template, then restore the hash with parameter
                     setTimeout(() => {
                         console.log('Template loaded, restoring hash with parameter...');
                         window.location.hash = targetHash;
-                        
                         // Now load the post content
                         setTimeout(() => {
                             if (typeof loadPostContent === 'function') {
@@ -169,7 +160,7 @@ $(document).ready(function() {
             }, 100);
         }
     });
-
+    
     // FORCE INITIAL CONTENT LOAD
     // Sometimes SPAPP events don't fire on initial load
     setTimeout(() => {
@@ -194,16 +185,13 @@ $(document).ready(function() {
         } else if (currentHash.startsWith('#post?id=')) {
             // Handle post with parameter on initial load
             console.log('Force loading post with parameter...');
-            
             const postContainer = document.getElementById('post-content');
             if (!postContainer) {
                 console.log('No post container on initial load, navigating to #post first...');
                 // Store the target hash
                 const targetHash = currentHash;
-                
                 // Navigate to #post to load template
                 window.location.hash = '#post';
-                
                 // Wait for template to load, then restore hash and load content
                 setTimeout(() => {
                     window.location.hash = targetHash;
@@ -221,12 +209,12 @@ $(document).ready(function() {
             }
         }
     }, 500);
-
+    
     // Global error handler
     window.addEventListener('unhandledrejection', function(event) {
         console.error('Unhandled promise rejection:', event.reason);
     });
-
+    
     // Auto-refresh authentication status
     setInterval(() => {
         if (Auth.isAuthenticated()) {
@@ -240,7 +228,7 @@ $(document).ready(function() {
             });
         }
     }, 300000); // Check every 5 minutes
-
+    
     // Initialize tooltips and other Bootstrap components
     if (typeof bootstrap !== 'undefined') {
         // Initialize tooltips
@@ -251,7 +239,7 @@ $(document).ready(function() {
     }
 });
 
-// Profile loading function
+// Profile loading function with admin icon support
 async function loadProfileContent() {
     console.log('loadProfileContent called...');
     
@@ -259,7 +247,7 @@ async function loadProfileContent() {
         window.location.hash = '#login';
         return;
     }
-
+    
     const container = document.getElementById('profile-content');
     if (!container) {
         console.error('Profile container not found');
@@ -275,10 +263,11 @@ async function loadProfileContent() {
         
         if (result.status === 'success' && result.data) {
             const user = result.data;
+            const profileIcon = getProfileIcon(user.role);
             
             container.innerHTML = `
                 <div class="text-center">
-                    <img src="frontend/assets/images/profile-icon.png" alt="Profile" class="rounded-circle mb-3" style="width: 120px; height: 120px;">
+                    <img src="${profileIcon}" alt="Profile" class="rounded-circle mb-3" style="width: 120px; height: 120px;">
                     <h4 class="card-title mb-3">${user.name || user.username}</h4>
                     <div class="d-flex justify-content-center align-items-center mb-3">
                         <span id="profile-text" class="me-2">
@@ -302,6 +291,7 @@ async function loadProfileContent() {
                     </div>
                 </div>
             `;
+            
             console.log('Profile content loaded successfully');
         } else {
             console.error('Failed to load profile:', result);
@@ -321,7 +311,7 @@ async function loadProfileContent() {
     }
 }
 
-// Post loading function  
+// Post loading function with admin icon support
 async function loadPostContent() {
     console.log('loadPostContent called...');
     
@@ -329,12 +319,12 @@ async function loadPostContent() {
         window.location.hash = '#login';
         return;
     }
-
+    
     // Get post ID from URL hash
     const hash = window.location.hash;
     console.log('Current hash for post:', hash);
-    
     const match = hash.match(/id=(\d+)/);
+    
     if (!match) {
         console.error('No post ID found in hash:', hash);
         const container = document.getElementById('post-content');
@@ -349,7 +339,7 @@ async function loadPostContent() {
         }
         return;
     }
-
+    
     const currentPostId = parseInt(match[1]);
     console.log('Loading post ID:', currentPostId);
     
@@ -359,14 +349,12 @@ async function loadPostContent() {
     
     const waitForContainer = () => {
         const container = document.getElementById('post-content');
-        
         if (container) {
             console.log('Post container found, loading content...');
             loadPostContentWithContainer(container, currentPostId);
         } else {
             retries++;
             console.log(`Post container not found, retry ${retries}/${maxRetries}...`);
-            
             if (retries < maxRetries) {
                 setTimeout(waitForContainer, 100);
             } else {
@@ -378,7 +366,7 @@ async function loadPostContent() {
     waitForContainer();
 }
 
-// Separated function to load post content once container exists
+// Separated function to load post content once container exists with admin icon support
 async function loadPostContentWithContainer(container, currentPostId) {
     try {
         console.log('Fetching post data for ID:', currentPostId);
@@ -387,9 +375,9 @@ async function loadPostContentWithContainer(container, currentPostId) {
         
         if (result.status === 'success' && result.data) {
             const post = result.data;
-            
             const likeResult = await API.postLikes.getCount(currentPostId);
             const likeCount = likeResult.status === 'success' ? likeResult.data.count : 0;
+            const profileIcon = getProfileIcon(post.user_role || post.role);
             
             let isLiked = false;
             if (Auth.isAuthenticated()) {
@@ -399,7 +387,7 @@ async function loadPostContentWithContainer(container, currentPostId) {
                     isLiked = userLikes.data.some(like => like.postId == currentPostId);
                 }
             }
-
+            
             const canModify = canUserModify(post.userId, Auth.user.role);
             const editDeleteButtons = canModify ? `
                 <div class="dropdown">
@@ -416,12 +404,12 @@ async function loadPostContentWithContainer(container, currentPostId) {
                     </ul>
                 </div>
             ` : '';
-
+            
             container.innerHTML = `
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div class="d-flex">
-                            <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                            <img src="${profileIcon}" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
                             <div>
                                 <h5 class="mb-1">${post.user_name || post.username}</h5>
                                 <p class="text-muted small">Posted ${formatDate(post.created_at)}</p>
@@ -449,7 +437,6 @@ async function loadPostContentWithContainer(container, currentPostId) {
             }
             
             console.log('Post content loaded successfully');
-            
         } else {
             console.error('Post not found:', result);
             container.innerHTML = `
@@ -472,7 +459,7 @@ async function loadPostContentWithContainer(container, currentPostId) {
     }
 }
 
-// Load comments for a post
+// Load comments for a post with admin icon support
 async function loadPostComments(postId) {
     console.log('Loading comments for post:', postId);
     
@@ -501,6 +488,8 @@ async function loadPostComments(postId) {
             } else {
                 result.data.forEach(comment => {
                     const canModify = canUserModify(comment.userId, Auth.user.role);
+                    const profileIcon = getProfileIcon(comment.user_role || comment.role);
+                    
                     const editDeleteButtons = canModify ? `
                         <div class="dropdown">
                             <button class="btn btn-sm btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -516,13 +505,13 @@ async function loadPostComments(postId) {
                             </ul>
                         </div>
                     ` : '';
-
+                    
                     commentsHTML += `
                         <div class="card mb-2">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between mb-2">
                                     <div class="d-flex">
-                                        <img src="frontend/assets/images/profile-icon.png" class="rounded-circle me-2" alt="Avatar" style="width: 40px; height: 40px;">
+                                        <img src="${profileIcon}" class="rounded-circle me-2" alt="Avatar" style="width: 40px; height: 40px;">
                                         <div>
                                             <h6 class="mb-0">${comment.user_name || comment.username}</h6>
                                             <small class="text-muted">${formatDate(comment.created_at)}</small>
