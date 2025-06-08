@@ -35,6 +35,15 @@ Flight::map('error', function(Exception $ex) {
     ], 400);
 });
 
+Flight::route('GET /debug-db', function() {
+    try {
+        $connection = Database::connect();
+        Flight::json(['status' => 'success', 'message' => 'Database connected successfully']);
+    } catch (Exception $e) {
+        Flight::json(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+});
+
 $userService = new UserService();
 $postService = new PostService();
 $commentService = new CommentService();
