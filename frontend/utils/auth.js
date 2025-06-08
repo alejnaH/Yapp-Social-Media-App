@@ -16,7 +16,7 @@ const Auth = {
         console.log('Auth.login called with username:', username);
         
         try {
-            const response = await fetch('/backend/api/auth/login', {
+            const response = await fetch('https://yapp-backend-ixlrf.ondigitalocean.app/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
@@ -77,7 +77,7 @@ const Auth = {
         console.log('Auth.register called with data:', userData);
         
         try {
-            const response = await fetch('/backend/api/users', {
+            const response = await fetch('https://yapp-backend-ixlrf.ondigitalocean.app/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
