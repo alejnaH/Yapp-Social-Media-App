@@ -1,15 +1,16 @@
 <?php
 class JWTHelper {
-    private static $secret = 'jwt_secret_key';
     private static $algorithm = 'HS256';
 
     public static function generateToken($user) {
+        $secret = Config::JWT_SECRET();
+        
         $header = json_encode(['typ' => 'JWT', 'alg' => self::$algorithm]);
         $payload = json_encode([
             'iss' => 'community_platform',
             'aud' => 'community_platform',
             'iat' => time(),
-            'exp' => time() + (24 * 60 * 60), // 24 hours
+            'exp' => time() + (24 * 60 * 60),
             'user_id' => $user['id'],
             'username' => $user['username'],
             'role' => isset($user['role']) ? $user['role'] : 'user'
@@ -17,8 +18,7 @@ class JWTHelper {
 
         $headerEncoded = self::base64UrlEncode($header);
         $payloadEncoded = self::base64UrlEncode($payload);
-        
-        $signature = hash_hmac('sha256', $headerEncoded . "." . $payloadEncoded, self::$secret, true);
+        $signature = hash_hmac('sha256', $headerEncoded . "." . $payloadEncoded, $secret, true);
         $signatureEncoded = self::base64UrlEncode($signature);
 
         return $headerEncoded . "." . $payloadEncoded . "." . $signatureEncoded;
@@ -26,7 +26,9 @@ class JWTHelper {
 
     public static function validateToken($token) {
         try {
+            $secret = Config::JWT_SECRET();
             $parts = explode('.', $token);
+            
             if (count($parts) !== 3) {
                 return false;
             }
@@ -35,16 +37,15 @@ class JWTHelper {
             $payload = self::base64UrlDecode($parts[1]);
             $signature = self::base64UrlDecode($parts[2]);
 
-            $expectedSignature = hash_hmac('sha256', $parts[0] . "." . $parts[1], self::$secret, true);
+            $expectedSignature = hash_hmac('sha256', $parts[0] . "." . $parts[1], $secret, true);
 
             if (!hash_equals($signature, $expectedSignature)) {
                 return false;
             }
 
             $payloadData = json_decode($payload, true);
-            
             if ($payloadData['exp'] < time()) {
-                return false; // Token expired
+                return false;
             }
 
             return $payloadData;
@@ -61,4 +62,3 @@ class JWTHelper {
         return base64_decode(str_pad(strtr($data, '-_', '+/'), strlen($data) % 4, '=', STR_PAD_RIGHT));
     }
 }
-?>
