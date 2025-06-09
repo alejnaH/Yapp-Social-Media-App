@@ -183,9 +183,12 @@ Flight::route('POST /api/comments', function() use ($commentService) {
  * )
  */
 Flight::route('PUT /api/comments/@id', function($id) use ($commentService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
+        $user = AuthMiddleware::getCurrentUser();
         $data = Flight::request()->data->getData();
-        $result = $commentService->update($id, $data);
+        $result = $commentService->updateWithAuth($id, $data, $user['user_id'], $user['role']);
         Flight::json(['status' => 'success', 'data' => $result]);
     } catch (Exception $e) {
         Flight::error($e);
@@ -215,8 +218,11 @@ Flight::route('PUT /api/comments/@id', function($id) use ($commentService) {
  * )
  */
 Flight::route('DELETE /api/comments/@id', function($id) use ($commentService) {
+    if (!AuthMiddleware::authenticate()) return;
+
     try {
-        $result = $commentService->delete($id);
+        $user = AuthMiddleware::getCurrentUser();
+        $result = $commentService->deleteWithAuth($id, $user['user_id'], $user['role']);
         Flight::json(['status' => 'success', 'data' => $result]);
     } catch (Exception $e) {
         Flight::error($e);

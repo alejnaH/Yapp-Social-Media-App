@@ -29,6 +29,28 @@ class CommentService extends BaseService {
             throw new Exception("Invalid user ID");
         }
     }
+
+    public function canModify($commentId, $currentUserId, $userRole) {
+        $comment = $this->getById($commentId);
+        if (!$comment) {
+            throw new Exception("Comment not found");
+        }
+        return $comment['userId'] == $currentUserId || $userRole === 'admin';
+    }
+
+    public function updateWithAuth($id, $data, $currentUserId, $userRole) {
+        if (!$this->canModify($id, $currentUserId, $userRole)) {
+            throw new Exception("You don't have permission to modify this comment");
+        }
+        return $this->update($id, $data);
+    }
+
+    public function deleteWithAuth($id, $currentUserId, $userRole) {
+        if (!$this->canModify($id, $currentUserId, $userRole)) {
+            throw new Exception("You don't have permission to delete this comment");
+        }
+        return $this->delete($id);
+    }
     
     public function getByPostId($postId) {
         if (!is_numeric($postId) || $postId <= 0) {
